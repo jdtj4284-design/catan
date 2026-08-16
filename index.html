@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="8人を4人×2卓に振り分けて座席とスタートプレイヤーを決めるカタン用ツール">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#0b222c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="カタン席決め">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<style>html,body{background:#0b222c}</style>
+</head>
+<body>
+<title>カタン席決め</title>
+<style>
+  :root{
+    --sea-deep:#0b222c;
+    --sea:#123441;
+    --sea-soft:#18404e;
+    --line:#2a5c6d;
+    --sand:#f3e6cd;
+    --sand-dim:#a9bfc7;
+    --clay:#e2673d;
+    --clay-ink:#3a1408;
+    --pasture:#8ac545;
+    --pasture-ink:#12300a;
+    --gold:#f5c33f;
+    --danger:#ef6a5a;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    margin:0;
+    background:var(--sea-deep);
+    color:var(--sand);
+    font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,-apple-system,sans-serif;
+    -webkit-text-size-adjust:100%;
+    line-height:1.4;
+  }
+  .wrap{
+    max-width:480px;
+    margin:0 auto;
+    padding:16px 14px calc(28px + env(safe-area-inset-bottom));
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  /* ---- header ---- */
+  .head{display:flex;align-items:center;gap:10px;padding-top:4px}
+  .head .mark{
+    width:38px;height:42px;flex:none;
+    background:var(--gold);
+    clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
+    display:grid;place-items:center;
+    color:#3d2a00;font-size:20px;
+  }
+  .head h1{
+    margin:0;font-size:23px;font-weight:800;letter-spacing:.04em;
+  }
+  .head p{margin:2px 0 0;font-size:12px;letter-spacing:.14em;color:var(--sand-dim)}
+
+  /* ---- cards ---- */
+  .card{
+    background:var(--sea);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:14px;
+  }
+  .card h2{
+    margin:0 0 10px;font-size:15px;font-weight:800;letter-spacing:.1em;
+    color:var(--sand-dim);
+  }
+
+  /* ---- name rows ---- */
+  .rows{display:flex;flex-direction:column;gap:8px}
+  .row{display:flex;align-items:center;gap:8px}
+  .row .idx{
+    width:26px;flex:none;text-align:center;
+    font-size:14px;font-weight:700;color:var(--sand-dim);
+    font-variant-numeric:tabular-nums;
+  }
+  .row input{
+    flex:1;min-width:0;
+    background:var(--sea-deep);
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    color:var(--sand);
+    font-size:18px;
+    font-family:inherit;
+    padding:12px 10px;
+  }
+  .row input::placeholder{color:#5e7d89}
+  .row input:focus{outline:none;border-color:var(--gold)}
+  .row input.bad{border-color:var(--danger)}
+  .sep{
+    width:52px;height:48px;flex:none;
+    border-radius:10px;
+    border:1.5px solid var(--line);
+    background:transparent;
+    color:#5e7d89;
+    font-size:20px;
+    line-height:1;
+    display:grid;place-items:center;
+    cursor:pointer;
+  }
+  .sep.on{
+    background:rgba(245,195,63,.16);
+    border-color:var(--gold);
+    color:var(--gold);
+  }
+  .note{margin:10px 0 0;font-size:13px;color:var(--sand-dim)}
+  .note b{color:var(--gold)}
+
+  /* ---- buttons ---- */
+  .btn{
+    width:100%;
+    display:block;
+    border:none;
+    border-radius:14px;
+    padding:18px 12px;
+    font-family:inherit;
+    font-size:21px;
+    font-weight:800;
+    letter-spacing:.04em;
+    cursor:pointer;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-main{background:var(--gold);color:#3b2900;box-shadow:0 4px 0 #b98d13}
+  .btn-main:active{box-shadow:0 2px 0 #b98d13}
+  .btn-next{background:var(--pasture);color:var(--pasture-ink);box-shadow:0 4px 0 #58862c}
+  .btn-next:active{box-shadow:0 2px 0 #58862c}
+  .btn-sub{
+    background:transparent;border:1.5px solid var(--line);color:var(--sand);
+    font-size:16px;padding:14px 10px;
+  }
+  .btns{display:flex;flex-direction:column;gap:10px}
+  .btns.two{flex-direction:row}
+  .btns.two .btn{flex:1}
+
+  /* ---- round tabs ---- */
+  .tabs{display:flex;gap:8px}
+  .tab{
+    flex:1;padding:12px 6px;border-radius:11px;
+    border:1.5px solid var(--line);background:transparent;
+    color:var(--sand-dim);font-family:inherit;font-size:16px;font-weight:700;
+    cursor:pointer;
+  }
+  .tab.on{background:var(--sand);color:var(--sea-deep);border-color:var(--sand)}
+
+  .legend{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    font-size:13px;color:var(--sand-dim);
+    background:var(--sea);border:1px solid var(--line);
+    border-radius:11px;padding:10px 8px;text-align:center;
+  }
+  .legend .k{color:var(--gold);font-weight:700}
+
+  /* ---- table block ---- */
+  .table{
+    border-radius:16px;
+    padding:12px 12px 14px;
+    border:2px solid var(--tc);
+    background:
+      radial-gradient(120% 90% at 50% 0%, var(--tc-soft), rgba(0,0,0,0) 70%),
+      var(--sea);
+  }
+  .t-a{--tc:#e2673d;--tc-soft:rgba(226,103,61,.22);--tc-ring:rgba(226,103,61,.5)}
+  .t-b{--tc:#8ac545;--tc-soft:rgba(138,197,69,.20);--tc-ring:rgba(138,197,69,.5)}
+  .thead{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+  .thead .chip{
+    background:var(--tc);color:#111;
+    font-size:19px;font-weight:800;letter-spacing:.05em;
+    padding:5px 13px;border-radius:9px;
+  }
+  .thead .sub{font-size:12px;color:var(--sand-dim);letter-spacing:.08em}
+
+  .diagram{
+    position:relative;
+    display:grid;
+    grid-template-columns:1fr 78px 1fr;
+    gap:9px;
+    align-items:center;
+    justify-items:center;
+    padding:4px 0;
+  }
+  .ring{
+    position:absolute;left:6%;right:6%;top:12%;bottom:12%;
+    border:2px dashed var(--tc-ring);
+    border-radius:50%;
+    pointer-events:none;
+  }
+  .hex{
+    grid-area:2/2/3/3;
+    width:78px;height:86px;
+    background:var(--tc);
+    clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
+    display:grid;place-items:center;align-content:center;
+    color:#101010;
+    z-index:1;
+  }
+  .hex .cw{font-size:26px;line-height:1;font-weight:700}
+  .hex .cwt{font-size:10px;letter-spacing:.06em;margin-top:2px}
+
+  .seat{
+    position:relative;z-index:1;
+    width:100%;
+    background:var(--sea-soft);
+    border:1.5px solid var(--line);
+    border-radius:12px;
+    padding:9px 7px;
+    text-align:center;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+  }
+  .s1{grid-area:1/1/2/4;width:min(64%,210px)}
+  .s4{grid-area:2/1/3/2}
+  .s2{grid-area:2/3/3/4}
+  .s3{grid-area:3/1/4/4;width:min(64%,210px)}
+  .seat .num{
+    font-size:19px;line-height:1;font-weight:700;color:var(--tc);
+  }
+  .seat .nm{
+    font-size:clamp(15px,4.3vw,18px);font-weight:700;
+    word-break:break-word;line-height:1.25;
+  }
+  .seat.lead{
+    background:#324841;
+    border-color:var(--gold);
+  }
+  .seat.lead .num{color:var(--gold)}
+  .seat .star{
+    font-size:11px;font-weight:800;letter-spacing:.08em;
+    color:#3b2900;background:var(--gold);
+    border-radius:6px;padding:2px 7px;
+  }
+
+  .info{
+    font-size:13px;color:var(--sand-dim);
+    background:var(--sea);border:1px solid var(--line);
+    border-radius:11px;padding:11px 12px;
+  }
+  .info b{color:var(--sand)}
+  .foot{font-size:11px;color:#5e7d89;text-align:center;letter-spacing:.05em}
+
+  /* ---- 自前ダイアログ / メッセージ（iOSのalert・confirmは使わない） ---- */
+  .msg{
+    margin:12px 0 0;padding:11px 12px;border-radius:10px;
+    background:rgba(239,106,90,.14);border:1px solid var(--danger);
+    color:#ffd9d3;font-size:14px;font-weight:700;line-height:1.5;
+  }
+  .sheet{
+    position:fixed;top:0;right:0;bottom:0;left:0;z-index:50;
+    background:rgba(4,15,20,.78);
+    display:flex;align-items:center;justify-content:center;
+    padding:22px;
+  }
+  .sheetbox{
+    width:100%;max-width:340px;
+    background:var(--sea);border:1px solid var(--line);
+    border-radius:16px;padding:18px 16px;
+  }
+  .sheetbox p{margin:0 0 14px;font-size:17px;line-height:1.55;text-align:center}
+  [hidden]{display:none !important}
+  @media (prefers-reduced-motion:no-preference){
+    .table{animation:pop .22s ease-out both}
+    @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  }
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <div class="mark">🎲</div>
+    <div>
+      <h1>カタン席決め</h1>
+      <p>8人 / A卓・B卓 / 2回戦</p>
+    </div>
+  </div>
+
+  <!-- ============ SETUP ============ -->
+  <section id="setup">
+    <div class="card">
+      <h2>参加者 8人</h2>
+      <div class="rows" id="rows"></div>
+      <p class="note">⚔️ をつけた<b>2人は必ず別の卓</b>になります（2人まで）。</p>
+      <div class="msg" id="setupMsg" hidden></div>
+    </div>
+    <div class="btns" style="margin-top:16px">
+      <button class="btn btn-main" id="goBtn">🎲 席決め！</button>
+      <button class="btn btn-sub" id="backToResult" hidden>▶ 結果にもどる</button>
+    </div>
+  </section>
+
+  <!-- ============ GAME ============ -->
+  <section id="game" hidden>
+    <div class="tabs" id="tabs"></div>
+    <div class="legend">
+      <span><span class="k">①</span> がスタート</span>
+      <span>／</span>
+      <span>① → ② → ③ → ④ <span class="k">時計まわり</span></span>
+    </div>
+    <div id="tables" style="display:flex;flex-direction:column;gap:14px"></div>
+    <div class="info" id="info"></div>
+    <div class="btns">
+      <button class="btn btn-next" id="round2Btn" hidden>🔀 2回戦の席決め！</button>
+      <button class="btn btn-sub" id="rerollBtn">🎲 このラウンドをふり直す</button>
+      <div class="btns two">
+        <button class="btn btn-sub" id="editBtn">✏️ 名前をなおす</button>
+        <button class="btn btn-sub" id="resetBtn">🔄 最初から</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">SETTLE THE SEATS · 木を1つください</div>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheetbox">
+    <p id="sheetMsg"></p>
+    <div class="btns two">
+      <button class="btn btn-sub" id="sheetNo" type="button">キャンセル</button>
+      <button class="btn btn-main" id="sheetYes" type="button" style="font-size:17px;padding:14px 10px">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- iPhone: ホーム画面に追加でアプリ風に ---------- */
+  try{
+    var metas = [
+      ["viewport","width=device-width, initial-scale=1, viewport-fit=cover"],
+      ["apple-mobile-web-app-capable","yes"],
+      ["mobile-web-app-capable","yes"],
+      ["apple-mobile-web-app-status-bar-style","black-translucent"],
+      ["apple-mobile-web-app-title","カタン席決め"],
+      ["theme-color","#0b222c"]
+    ];
+    metas.forEach(function(m){
+      if(document.querySelector('meta[name="'+m[0]+'"]')) return;
+      var el=document.createElement("meta");
+      el.setAttribute("name",m[0]); el.setAttribute("content",m[1]);
+      document.head.appendChild(el);
+    });
+  }catch(e){}
+
+  /* ---------- state ---------- */
+  var KEY="catan-seat-v1";
+  var N=8;
+  function factory(){
+    return { names:["ヒデキチ","たかなり","","","","","",""], sep:[0,1], rounds:[], view:0 };
+  }
+  var state=factory();
+
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+  }
+  function load(){
+    try{
+      var raw=localStorage.getItem(KEY); if(!raw) return;
+      var s=JSON.parse(raw);
+      if(!s || !Array.isArray(s.names) || s.names.length!==N) return;
+      if(!Array.isArray(s.sep)) return;
+      if(!Array.isArray(s.rounds)) return;
+      for(var i=0;i<s.rounds.length;i++){
+        var t=s.rounds[i] && s.rounds[i].tables;
+        if(!Array.isArray(t)||t.length!==2||t[0].length!==4||t[1].length!==4) return;
+      }
+      state.names=s.names.map(function(v){return typeof v==="string"?v:"";});
+      state.sep=s.sep.filter(function(v){return typeof v==="number"&&v>=0&&v<N;}).slice(0,2);
+      state.rounds=s.rounds;
+      state.view=Math.min(s.view||0, Math.max(0,state.rounds.length-1));
+    }catch(e){}
+  }
+
+  /* ---------- 組み分けロジック ---------- */
+  function popcount(m){var c=0;while(m){c+=m&1;m>>=1;}return c;}
+
+  // 8人を4+4に分ける全35通り（0番は必ず先頭グループ）。⚔️ペアは別グループのみ。
+  function validSplits(sep){
+    var out=[];
+    for(var mask=1;mask<256;mask+=2){
+      if(popcount(mask)!==4) continue;
+      if(sep.length===2 && (((mask>>sep[0])&1) === ((mask>>sep[1])&1))) continue;
+      var g1=[],g2=[];
+      for(var i=0;i<N;i++){ (((mask>>i)&1)?g1:g2).push(i); }
+      out.push([g1,g2]);
+    }
+    return out;
+  }
+  function pairsOf(g){
+    var r=[];
+    for(var i=0;i<g.length;i++) for(var j=i+1;j<g.length;j++) r.push([g[i],g[j]]);
+    return r;
+  }
+  function pk(a,b){ return a<b ? a+"-"+b : b+"-"+a; }
+  function shuffle(a){
+    for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; }
+    return a;
+  }
+  function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+
+  function toRound(split){
+    var gs = Math.random()<0.5 ? [split[0],split[1]] : [split[1],split[0]];
+    return { tables:[ shuffle(gs[0].slice()), shuffle(gs[1].slice()) ] };
+  }
+
+  function prevPairSet(uptoRound){
+    var s={};
+    for(var r=0;r<uptoRound;r++){
+      var tb=state.rounds[r].tables;
+      for(var t=0;t<tb.length;t++){
+        var ps=pairsOf(tb[t]);
+        for(var i=0;i<ps.length;i++) s[pk(ps[i][0],ps[i][1])]=true;
+      }
+    }
+    return s;
+  }
+
+  // 既出の対戦を最小化＋偏りも最小化して分ける
+  function makeRound(roundIndex){
+    var cands=validSplits(state.sep);
+    if(!cands.length) return null;
+    if(roundIndex===0) return toRound(pick(cands));
+
+    var prev=prevPairSet(roundIndex);
+    var best=null, ties=[];
+    for(var c=0;c<cands.length;c++){
+      var sp=cands[c];
+      var per=[0,0,0,0,0,0,0,0], total=0;
+      for(var g=0;g<2;g++){
+        var ps=pairsOf(sp[g]);
+        for(var i=0;i<ps.length;i++){
+          if(prev[pk(ps[i][0],ps[i][1])]){ total++; per[ps[i][0]]++; per[ps[i][1]]++; }
+        }
+      }
+      var mx=0,sq=0;
+      for(var k=0;k<N;k++){ if(per[k]>mx) mx=per[k]; sq+=per[k]*per[k]; }
+      var score=[total,mx,sq];
+      var cmp = best===null ? -1 : (score[0]-best[0] || score[1]-best[1] || score[2]-best[2]);
+      if(cmp<0){ best=score; ties=[sp]; }
+      else if(cmp===0){ ties.push(sp); }
+    }
+    var r=toRound(pick(ties));
+    r.repeat={ total:best[0], max:best[1] };
+    return r;
+  }
+
+  /* ---------- 画面 ---------- */
+  var $=function(id){ return document.getElementById(id); };
+
+  function renderSetup(){
+    var rows=$("rows");
+    rows.innerHTML="";
+    for(var i=0;i<N;i++){
+      (function(i){
+        var row=document.createElement("div"); row.className="row";
+
+        var idx=document.createElement("div"); idx.className="idx"; idx.textContent=(i+1);
+
+        var inp=document.createElement("input");
+        inp.type="text"; inp.value=state.names[i];
+        inp.placeholder="プレイヤー"+(i+1);
+        inp.autocomplete="off"; inp.spellcheck=false;
+        inp.setAttribute("enterkeyhint","next");
+        inp.addEventListener("input",function(){
+          state.names[i]=inp.value;
+          inp.classList.remove("bad");
+          hideMsg();
+          save();
+        });
+
+        var sep=document.createElement("button");
+        sep.type="button"; sep.className="sep"+(state.sep.indexOf(i)>=0?" on":"");
+        sep.textContent="⚔️";
+        sep.setAttribute("aria-label","別卓にする");
+        sep.addEventListener("click",function(){
+          var at=state.sep.indexOf(i);
+          if(at>=0){ state.sep.splice(at,1); }
+          else{
+            if(state.sep.length>=2){ showMsg("⚔️ は2人までです。先にどちらかをタップして外してください。"); return; }
+            state.sep.push(i);
+          }
+          hideMsg(); save(); renderSetup();
+        });
+
+        row.appendChild(idx); row.appendChild(inp); row.appendChild(sep);
+        rows.appendChild(row);
+      })(i);
+    }
+    $("backToResult").hidden = state.rounds.length===0;
+    $("goBtn").textContent = state.rounds.length===0 ? "🎲 席決め！" : "🎲 席決めをやり直す";
+  }
+
+  function nameOf(i){
+    var n=(state.names[i]||"").trim();
+    return n || ("プレイヤー"+(i+1));
+  }
+
+  function seatEl(playerIdx, seatNo){
+    var d=document.createElement("div");
+    d.className="seat s"+seatNo+(seatNo===1?" lead":"");
+    var num=document.createElement("div"); num.className="num";
+    num.textContent="①②③④".charAt(seatNo-1);
+    var nm=document.createElement("div"); nm.className="nm"; nm.textContent=nameOf(playerIdx);
+    d.appendChild(num); d.appendChild(nm);
+    if(seatNo===1){
+      var st=document.createElement("div"); st.className="star"; st.textContent="⭐ START";
+      d.appendChild(st);
+    }
+    return d;
+  }
+
+  function tableEl(letter, seats){
+    var wrap=document.createElement("div");
+    wrap.className="table t-"+letter.toLowerCase();
+
+    var head=document.createElement("div"); head.className="thead";
+    var chip=document.createElement("span"); chip.className="chip"; chip.textContent=letter+"卓";
+    var sub=document.createElement("span"); sub.className="sub"; sub.textContent="①がスタートプレイヤー";
+    head.appendChild(chip); head.appendChild(sub);
+
+    var dia=document.createElement("div"); dia.className="diagram";
+    var ring=document.createElement("div"); ring.className="ring";
+    dia.appendChild(ring);
+
+    var hex=document.createElement("div"); hex.className="hex";
+    var cw=document.createElement("div"); cw.className="cw"; cw.textContent="↻";
+    var cwt=document.createElement("div"); cwt.className="cwt"; cwt.textContent="時計まわり";
+    hex.appendChild(cw); hex.appendChild(cwt);
+
+    dia.appendChild(seatEl(seats[0],1));
+    dia.appendChild(seatEl(seats[3],4));
+    dia.appendChild(hex);
+    dia.appendChild(seatEl(seats[1],2));
+    dia.appendChild(seatEl(seats[2],3));
+
+    wrap.appendChild(head); wrap.appendChild(dia);
+    return wrap;
+  }
+
+  function renderGame(){
+    var total=state.rounds.length;
+    if(total===0){ show("setup"); return; }
+    if(state.view>total-1) state.view=total-1;
+
+    // tabs
+    var tabs=$("tabs");
+    tabs.innerHTML="";
+    tabs.hidden = total<2;
+    for(var r=0;r<total;r++){
+      (function(r){
+        var b=document.createElement("button");
+        b.type="button"; b.className="tab"+(r===state.view?" on":"");
+        b.textContent=(r+1)+"回戦";
+        b.addEventListener("click",function(){ state.view=r; save(); renderGame(); });
+        tabs.appendChild(b);
+      })(r);
+    }
+
+    var round=state.rounds[state.view];
+
+    // 前ラウンドと同じ相手の組数（2回戦以降）
+    var repCount=0;
+    if(state.view>0){
+      var prev=prevPairSet(state.view);
+      for(var t=0;t<2;t++){
+        var ps=pairsOf(round.tables[t]);
+        for(var i=0;i<ps.length;i++){
+          if(prev[pk(ps[i][0],ps[i][1])]) repCount++;
+        }
+      }
+    }
+
+    var box=$("tables");
+    box.innerHTML="";
+    box.appendChild(tableEl("A", round.tables[0]));
+    box.appendChild(tableEl("B", round.tables[1]));
+
+    // info
+    var info=$("info");
+    if(state.view===0){
+      info.innerHTML="<b>"+nameOf(round.tables[0][0])+"</b> さん（A卓）と <b>"+nameOf(round.tables[1][0])+"</b> さん（B卓）が1回戦のスタートプレイヤーです。";
+    }else{
+      var msg="<b>"+nameOf(round.tables[0][0])+"</b> さん（A卓）と <b>"+nameOf(round.tables[1][0])+"</b> さん（B卓）が2回戦のスタートプレイヤーです。";
+      if(repCount===0){
+        msg+="<br>🔁 前回と同じ相手：<b>なし</b>";
+      }else{
+        msg+="<br>🔁 前回と同じ相手：のべ <b>"+repCount+"組</b>（1人あたり最大 "+(round.repeat?round.repeat.max:1)+"人）。8人・4人卓ではこれが最小です。";
+      }
+      info.innerHTML=msg;
+    }
+
+    $("round2Btn").hidden = !(total===1);
+    $("rerollBtn").hidden = !(state.view===total-1);
+    $("rerollBtn").textContent = "🎲 "+(state.view+1)+"回戦をふり直す";
+    show("game");
+  }
+
+  function show(which){
+    // iOSでキーボードが残ったまま画面が切り替わるのを防ぐ
+    try{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }catch(e){}
+    $("setup").hidden = which!=="setup";
+    $("game").hidden  = which!=="game";
+    window.scrollTo(0,0);
+  }
+
+  /* ---------- メッセージ / 確認ダイアログ（自前・非ブロッキング） ---------- */
+  function showMsg(text){
+    var el=$("setupMsg"); el.textContent=text; el.hidden=false;
+  }
+  function hideMsg(){ $("setupMsg").hidden=true; }
+
+  var pendingYes=null;
+  function ask(text, onYes){
+    $("sheetMsg").textContent=text;
+    pendingYes=onYes;
+    $("sheet").hidden=false;
+  }
+  function closeSheet(){ $("sheet").hidden=true; pendingYes=null; }
+  $("sheetNo").addEventListener("click", closeSheet);
+  $("sheetYes").addEventListener("click", function(){
+    var fn=pendingYes;
+    closeSheet();
+    if(fn) safely(fn);
+  });
+
+  // 何が起きても操作不能にならないよう、ハンドラは必ずこれを通す
+  function safely(fn){
+    try{ fn(); }
+    catch(e){
+      try{ showMsg("エラーが起きました。「最初から」を押してやり直してください。"); }catch(e2){}
+    }
+  }
+  function on(id, fn){
+    $(id).addEventListener("click", function(){ safely(fn); });
+  }
+
+  /* ---------- 操作 ---------- */
+  function validate(){
+    var ok=true;
+    var inputs=document.querySelectorAll("#rows input");
+    for(var i=0;i<N;i++){
+      var v=(state.names[i]||"").trim();
+      if(!v){ ok=false; if(inputs[i]) inputs[i].classList.add("bad"); }
+    }
+    if(!ok){ showMsg("8人ぶんの名前を入力してください。"); return false; }
+    if(state.sep.length===1){
+      showMsg("⚔️ は2人セットで指定してください。（1人だけだと別卓の指定になりません）");
+      return false;
+    }
+    hideMsg();
+    return true;
+  }
+
+  function startRound1(){
+    var r=makeRound(0);
+    if(!r){ showMsg("この条件では組み分けできません。"); return; }
+    state.rounds=[r]; state.view=0; save(); renderGame();
+  }
+
+  on("goBtn", function(){
+    if(!validate()) return;
+    if(state.rounds.length>0){
+      ask("1回戦から決め直します。今の結果は消えます。よろしいですか？", startRound1);
+      return;
+    }
+    startRound1();
+  });
+
+  on("backToResult", function(){
+    renderGame();
+  });
+
+  on("round2Btn", function(){
+    var r=makeRound(1);
+    if(!r) return;
+    state.rounds[1]=r; state.view=1; save(); renderGame();
+  });
+
+  on("rerollBtn", function(){
+    var i=state.view;
+    var r=makeRound(i);
+    if(!r) return;
+    state.rounds[i]=r;
+    state.rounds.length=i+1;   // 後のラウンドは無効になるので破棄
+    save(); renderGame();
+  });
+
+  on("editBtn", function(){
+    hideMsg(); renderSetup(); show("setup");
+  });
+
+  // 「最初から」＝アプリを初めて開いた状態に完全に戻す
+  function hardReset(){
+    state=factory();                       // 名前・⚔️・1回戦2回戦の履歴・表示ラウンドを全部作り直す
+    try{ localStorage.removeItem(KEY); }catch(e){}
+    closeSheet();
+    hideMsg();
+    $("tabs").innerHTML=""; $("tabs").hidden=true;
+    $("tables").innerHTML="";
+    $("info").innerHTML="";
+    renderSetup();
+    show("setup");
+  }
+
+  on("resetBtn", function(){
+    ask("結果と名前をすべて消して、最初からやり直しますか？", hardReset);
+  });
+
+  /* ---------- 起動 ---------- */
+  load();
+  closeSheet();
+  hideMsg();
+  renderSetup();
+  if(state.rounds.length>0) renderGame(); else show("setup");
+})();
+</script>
+<script>
+/* オフラインでも起動できるようにサービスワーカーを登録（https のときだけ） */
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("./sw.js").catch(function () {});
+  });
+}
+</script>
+</body>
+</html>
